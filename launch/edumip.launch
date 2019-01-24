@@ -1,0 +1,3 @@
+<launch>
+  <node name="edumip" pkg="edumip" type="edumip_node" output="screen"/>
+</launch>
