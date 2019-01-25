@@ -1,0 +1,3 @@
+<launch>
+  <node name="chatter" pkg="edumip_ros" type="chatter_node" output="screen"/>
+</launch>

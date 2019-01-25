@@ -14,6 +14,8 @@
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <tf2/LinearMath/Quaternion.h>
 
 /**
  * NOVICE: Drive rate and turn rate are limited to make driving easier.
@@ -112,10 +114,11 @@ static void __print_usage(void)
  */
 int main(int argc, char *argv[])
 {
+    // ros
     ros::init(argc, argv, "edumip");
     ros::NodeHandle n;
-
     ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+    ros::Publisher pose_pub = n.advertise<geometry_msgs::PoseStamped>("pose", 1000);
 
     int c;
     pthread_t setpoint_thread = 0;
@@ -126,16 +129,7 @@ int main(int argc, char *argv[])
 
     // parse arguments
     opterr = 0;
-    while (ros::ok() && (c = getopt(argc, argv, "i:qh")) != -1){
-
-        std_msgs::String msg;
-        std::stringstream ss;
-        ss << "hello world" << std::endl;
-        msg.data = ss.str();
-        chatter_pub.publish(msg);
-        ROS_INFO("%s", msg.data.c_str());
-
-        ros::spinOnce();
+    while (c = getopt(argc, argv, "i:qh") != -1){
 
         switch (c){
         case 'i': // input option
@@ -336,7 +330,35 @@ int main(int argc, char *argv[])
 
     // chill until something exits the program
     rc_set_state(RUNNING);
-    while(rc_get_state()!=EXITING){
+
+    ros::Rate r(100); // 100 hz
+
+    while(ros::ok() && rc_get_state()!=EXITING){
+        {
+            std_msgs::String msg;
+            std::stringstream ss;
+            ss << "hello world" << std::endl;
+            msg.data = ss.str();
+            chatter_pub.publish(msg);
+        }
+        {
+            geometry_msgs::PoseStamped msg;
+            msg.header.stamp = ros::Time::now();
+            msg.header.frame_id = "map";
+            msg.pose.position.x = 0.05*cstate.phi;
+            msg.pose.position.y = 0;
+            msg.pose.position.z = 0;
+            tf2::Quaternion q;
+            q.setRPY(0, cstate.theta, cstate.gamma);
+            msg.pose.orientation.x = q[0];
+            msg.pose.orientation.y = q[1];
+            msg.pose.orientation.z = q[2];
+            msg.pose.orientation.w = q[3];
+            pose_pub.publish(msg);
+        }
+        //ROS_INFO("%s", msg.data.c_str());
+        ros::spinOnce();
+
         rc_usleep(200000);
     }
 
